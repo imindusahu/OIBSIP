@@ -48,6 +48,9 @@ Users log in with a User ID and PIN, then perform banking operations through a m
 | user1 | 1234 | Rs.5000 |
 | user2 | 4321 | Rs.3000 |
 
+## Demo Video
+Watch the full walkthrough here: [LinkedIn Demo Video](https://lnkd.in/p/dEj4N_tX)
+
 ## Screenshots
 
 ### Login
