@@ -6,7 +6,7 @@ import java.awt.*;
 public class Theme {
     public static final Color BG = new Color(0xF4F6FB);
     public static final Color CARD = Color.WHITE;
-    public static final Color PRIMARY = new Color(0x4F46E5);
+    public static final Color PRIMARY = new Color(0xE58B46);
     public static final Color PRIMARY_TINT = new Color(0xEEF2FF);
     public static final Color TEXT = new Color(0x1F2937);
     public static final Color MUTED = new Color(0x6B7280);

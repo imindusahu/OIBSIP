@@ -17,7 +17,8 @@ public class ProfilePanel extends JPanel {
         Theme.styleField(nameField);
         Theme.styleField(passField);
         RoundedButton updateBtn = new RoundedButton("Update Profile", Theme.SECONDARY_BG, Theme.TEXT);
-        RoundedButton startBtn = new RoundedButton("Start Exam", Theme.PRIMARY, Color.WHITE);
+        RoundedButton startBtn = new RoundedButton("Normal Exam", Theme.PRIMARY, Color.WHITE);
+        RoundedButton adaptiveBtn = new RoundedButton("Adaptive Exam (AI)", Theme.SUCCESS, Color.WHITE);
 
         Theme.CardPanel card = new Theme.CardPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
@@ -36,10 +37,11 @@ public class ProfilePanel extends JPanel {
         c.gridy = 4; card.add(Theme.label("New Password (leave empty to keep old)", Theme.SMALL, Theme.MUTED), c);
         c.gridy = 5; card.add(passField, c);
 
-        JPanel buttons = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel buttons = new JPanel(new GridLayout(1, 3, 10, 0));
         buttons.setOpaque(false);
         buttons.add(updateBtn);
         buttons.add(startBtn);
+        buttons.add(adaptiveBtn);
         c.gridy = 6; c.insets = new Insets(18, 0, 0, 0); card.add(buttons, c);
 
         add(card);
@@ -65,8 +67,13 @@ public class ProfilePanel extends JPanel {
         });
 
         startBtn.addActionListener(e -> {
-            frame.addScreen("EXAM", new ExamPanel(frame));
+            frame.addScreen("EXAM", new ExamPanel(frame, false));
             frame.showScreen("EXAM");
+        });
+
+        adaptiveBtn.addActionListener(e -> {
+            frame.addScreen("Exam", new ExamPanel(frame, true));
+            frame.showScreen("Exam");
         });
     }
 }

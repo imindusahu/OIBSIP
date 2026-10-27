@@ -3,20 +3,26 @@ package ui;
 import model.ExamResult;
 import model.Question;
 import service.QuestionBank;
+import service.AdaptiveEngine;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class ExamPanel extends JPanel {
-    private static final int TOTAL_SECONDS = 5 * 60; // final submission mein 30 * 60
+    private static final int TOTAL_SECONDS = 5 * 60;
+    private static final int ADAPTIVE_COUNT = 10;// final submission mein 30 * 60
 
     private final MainFrame frame;
-    private final List<Question> questions = QuestionBank.getQuestions();
-    private final int[] answers = new int[questions.size()];
+    private final boolean adaptive;
+    private final AdaptiveEngine engine;
+    private final List<Question> questions;
+    private final int[] answers;
+    private final int total;
     private int current = 0;
     private int remainingSeconds = TOTAL_SECONDS;
     private final Timer timer;
@@ -33,9 +39,22 @@ public class ExamPanel extends JPanel {
     private final RoundedButton nextBtn = new RoundedButton("Next", Theme.PRIMARY, Color.WHITE);
     private final RoundedButton submitBtn = new RoundedButton("Submit Exam", Theme.SUCCESS, Color.WHITE);
 
-    public ExamPanel(MainFrame frame) {
+    public ExamPanel(MainFrame frame, boolean adaptive) {
         this.frame = frame;
+        this.adaptive = adaptive;
+        if(adaptive) {
+            engine = new AdaptiveEngine(QuestionBank.getQuestions());
+            questions = new ArrayList<>();
+            questions.add(engine.nextQuestion());
+            total = ADAPTIVE_COUNT;
+        } else {
+            engine = null;
+            questions = QuestionBank.getQuestions();
+            total = questions.size();
+        }
+        answers = new int[total];
         Arrays.fill(answers, -1);
+
         setBackground(Theme.BG);
         setLayout(new BorderLayout(0, 16));
         setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
@@ -93,7 +112,8 @@ public class ExamPanel extends JPanel {
 
             rb.addActionListener(e -> refreshOptionStyles());
             MouseAdapter click = new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) { rb.doClick(); }
+                @Override
+                public void mouseClicked(MouseEvent e) { rb.doClick(); }
             };
             p.addMouseListener(click);
             txt.addMouseListener(click);
@@ -118,8 +138,9 @@ public class ExamPanel extends JPanel {
         add(bottom, BorderLayout.SOUTH);
 
         prevBtn.addActionListener(e -> move(-1));
-        nextBtn.addActionListener(e -> move(1));
+        nextBtn.addActionListener(e -> onNext());
         submitBtn.addActionListener(e -> onSubmitClicked());
+        if(adaptive) prevBtn.setVisible(false);
 
         // ---- countdown timer ----
         updateTimerLabel();
@@ -161,7 +182,7 @@ public class ExamPanel extends JPanel {
     private void onSubmitClicked() {
         saveAnswer();
         int unanswered = 0;
-        for (int a : answers) if (a == -1) unanswered++;
+        for (int i = 0; i < questions.size(); i++) if (answers[i] == -1) unanswered++;
 
         String msg = unanswered > 0
                 ? "You have " + unanswered + " unanswered question(s).\nSubmit anyway?"
@@ -175,7 +196,7 @@ public class ExamPanel extends JPanel {
         timer.stop();
         saveAnswer();
         int timeTaken = TOTAL_SECONDS - remainingSeconds;
-        frame.setLastResult(new ExamResult(questions, answers, timeTaken));
+        frame.setLastResult(new ExamResult(questions, Arrays.copyOf(answers, questions.size()), timeTaken));
 
         if (autoSubmitted) {
             JOptionPane.showMessageDialog(this, "Time is up! Your exam was submitted automatically.");
@@ -190,6 +211,28 @@ public class ExamPanel extends JPanel {
         }
     }
 
+    private void onNext() {
+        if(!adaptive) {
+            move(1);
+            return;
+        }
+        saveAnswer();
+        if(answers[current] == -1){
+            JOptionPane.showMessageDialog(this, "Please select answer before going to the next question.");
+            return;
+        }
+        Question q = questions.get(current);
+        engine.recordAnswer(answers[current] == q.getCorrectIndex());
+        Question next = engine.nextQuestion();
+        if(next == null) {
+            finishExam(false);
+            return;
+        }
+        questions.add(next);
+        current++;
+        showQuestion();
+    }
+
     private void move(int step) {
         saveAnswer();
         current += step;
@@ -198,8 +241,10 @@ public class ExamPanel extends JPanel {
 
     private void showQuestion() {
         Question q = questions.get(current);
-        numberLabel.setText("Question " + (current + 1) + " of " + questions.size());
-        progress.setFraction((current + 1) / (double) questions.size());
+        String[] levelNames = {"", "Easy", "Medium", "Hard"};
+        String levelText = adaptive ? "   |   " + levelNames[q.getDifficulty()] : "";
+        numberLabel.setText("Question " + (current + 1) + " of " + total + levelText);
+        progress.setFraction((current + 1) / (double) total);
         questionText.setText(q.getText());
         group.clearSelection();
         for (int i = 0; i < 4; i++) {
@@ -209,7 +254,7 @@ public class ExamPanel extends JPanel {
         refreshOptionStyles();
 
         prevBtn.setEnabled(current > 0);
-        nextBtn.setEnabled(current < questions.size() - 1);
+        nextBtn.setEnabled(current < total - 1);
     }
 
 

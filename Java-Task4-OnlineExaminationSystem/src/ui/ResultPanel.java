@@ -2,10 +2,12 @@ package ui;
 
 import model.ExamResult;
 import model.Question;
+import service.StudyAdvisor;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 
 public class ResultPanel extends JPanel {
     public ResultPanel(MainFrame frame) {
@@ -55,6 +57,8 @@ public class ResultPanel extends JPanel {
         JPanel list = new JPanel();
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(false);
+        list.add(buildAnalysis(r));
+        list.add(Box.createVerticalStrut(14));
 
         for (int i = 0; i < qs.size(); i++) {
             Question q = qs.get(i);
@@ -114,6 +118,56 @@ public class ResultPanel extends JPanel {
         bottom.setOpaque(false);
         bottom.add(logoutBtn);
         add(bottom, BorderLayout.SOUTH);
+    }
+
+    private JPanel buildAnalysis(ExamResult r) {
+        Theme.CardPanel card = new Theme.CardPanel(new BorderLayout());
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setOpaque(false);
+
+        JLabel head = Theme.label("Topic Analysis", Theme.HEADING, Theme.TEXT);
+        head.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(head);
+        body.add(Box.createVerticalStrut(8));
+
+        for (Map.Entry<String, int[]> e : r.getTopicStats().entrySet()) {
+            int c = e.getValue()[0];
+            int t = e.getValue()[1];
+            long pct = Math.round(100.0 * c / t);
+            String status;
+            Color col;
+            if (pct < 50)      { status = "Weak";   col = Theme.DANGER; }
+            else if (pct < 80) { status = "Okay";   col = new Color(0xD97706); }
+            else               { status = "Strong"; col = Theme.SUCCESS; }
+            JLabel l = Theme.label(e.getKey() + ":  " + c + " / " + t + "  (" + pct + "%)  -  " + status,
+                    Theme.BOLD, col);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            body.add(l);
+            body.add(Box.createVerticalStrut(4));
+        }
+
+        body.add(Box.createVerticalStrut(10));
+        JLabel plan = Theme.label("Study Plan", Theme.HEADING, Theme.TEXT);
+        plan.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(plan);
+        body.add(Box.createVerticalStrut(6));
+
+        for (String tip : StudyAdvisor.advise(r)) {
+            JTextArea ta = new JTextArea("\u2022 " + tip);
+            ta.setLineWrap(true);
+            ta.setWrapStyleWord(true);
+            ta.setEditable(false);
+            ta.setOpaque(false);
+            ta.setFont(Theme.BODY);
+            ta.setForeground(Theme.TEXT);
+            ta.setAlignmentX(Component.LEFT_ALIGNMENT);
+            body.add(ta);
+            body.add(Box.createVerticalStrut(4));
+        }
+
+        card.add(body, BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel chip(String title, int value, Color fg, Color bg) {
