@@ -27,6 +27,7 @@ public class ExamPanel extends JPanel {
     private final JTextArea questionText = new JTextArea(3, 40);
     private final JPanel[] optionPanels = new JPanel[4];
     private final JRadioButton[] optionBtns = new JRadioButton[4];
+    private final JTextArea[] optionTexts = new JTextArea[4];
     private final ButtonGroup group = new ButtonGroup();
     private final RoundedButton prevBtn = new RoundedButton("Previous", Theme.SECONDARY_BG, Theme.TEXT);
     private final RoundedButton nextBtn = new RoundedButton("Next", Theme.PRIMARY, Color.WHITE);
@@ -66,24 +67,36 @@ public class ExamPanel extends JPanel {
 
         JPanel options = new JPanel(new GridLayout(4, 1, 0, 10));
         options.setOpaque(false);
+
         for (int i = 0; i < 4; i++) {
             JRadioButton rb = new JRadioButton();
-            rb.setFont(Theme.BODY);
-            rb.setForeground(Theme.TEXT);
             rb.setOpaque(false);
             rb.setFocusPainted(false);
             group.add(rb);
             optionBtns[i] = rb;
 
-            JPanel p = new JPanel(new BorderLayout());
-            p.add(rb, BorderLayout.CENTER);
+            JTextArea txt = new JTextArea();
+            txt.setLineWrap(true);
+            txt.setWrapStyleWord(true);
+            txt.setEditable(false);
+            txt.setFocusable(false);
+            txt.setOpaque(false);
+            txt.setFont(Theme.BODY);
+            txt.setForeground(Theme.TEXT);
+            optionTexts[i] = txt;
+
+            JPanel p = new JPanel(new BorderLayout(8, 0));
+            p.add(rb, BorderLayout.WEST);
+            p.add(txt, BorderLayout.CENTER);
             p.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             optionPanels[i] = p;
 
             rb.addActionListener(e -> refreshOptionStyles());
-            p.addMouseListener(new MouseAdapter() {
+            MouseAdapter click = new MouseAdapter() {
                 @Override public void mouseClicked(MouseEvent e) { rb.doClick(); }
-            });
+            };
+            p.addMouseListener(click);
+            txt.addMouseListener(click);
             options.add(p);
         }
 
@@ -131,7 +144,7 @@ public class ExamPanel extends JPanel {
         timerLabel.setForeground(low ? Theme.DANGER : Theme.PRIMARY);
     }
 
-    // selected option ko highlight karo
+
     private void refreshOptionStyles() {
         for (int i = 0; i < 4; i++) {
             boolean sel = optionBtns[i].isSelected();
@@ -190,7 +203,7 @@ public class ExamPanel extends JPanel {
         questionText.setText(q.getText());
         group.clearSelection();
         for (int i = 0; i < 4; i++) {
-            optionBtns[i].setText(q.getOptions()[i]);
+            optionTexts[i].setText(q.getOptions()[i]);
         }
         if (answers[current] >= 0) optionBtns[answers[current]].setSelected(true);
         refreshOptionStyles();
@@ -199,7 +212,7 @@ public class ExamPanel extends JPanel {
         nextBtn.setEnabled(current < questions.size() - 1);
     }
 
-    // patli progress bar (khud paint karte hain)
+
     private static class ProgressStrip extends JComponent {
         private double fraction = 0;
 
