@@ -6,11 +6,13 @@ import service.QuestionBank;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.List;
 
 public class ExamPanel extends JPanel {
-    private static final int TOTAL_SECONDS = 60;
+    private static final int TOTAL_SECONDS = 5 * 60; // final submission mein 30 * 60
 
     private final MainFrame frame;
     private final List<Question> questions = QuestionBank.getQuestions();
@@ -19,55 +21,94 @@ public class ExamPanel extends JPanel {
     private int remainingSeconds = TOTAL_SECONDS;
     private final Timer timer;
 
-    private final JLabel numberLabel = new JLabel();
-    private final JLabel timerLabel = new JLabel();
+    private final JLabel numberLabel = Theme.label("", Theme.HEADING, Theme.TEXT);
+    private final JLabel timerLabel = new JLabel("", SwingConstants.CENTER);
+    private final ProgressStrip progress = new ProgressStrip();
     private final JTextArea questionText = new JTextArea(3, 40);
+    private final JPanel[] optionPanels = new JPanel[4];
     private final JRadioButton[] optionBtns = new JRadioButton[4];
     private final ButtonGroup group = new ButtonGroup();
-    private final JButton prevBtn = new JButton("Previous");
-    private final JButton nextBtn = new JButton("Next");
-    private final JButton submitBtn = new JButton("Submit Exam");
+    private final RoundedButton prevBtn = new RoundedButton("Previous", Theme.SECONDARY_BG, Theme.TEXT);
+    private final RoundedButton nextBtn = new RoundedButton("Next", Theme.PRIMARY, Color.WHITE);
+    private final RoundedButton submitBtn = new RoundedButton("Submit Exam", Theme.SUCCESS, Color.WHITE);
 
     public ExamPanel(MainFrame frame) {
         this.frame = frame;
         Arrays.fill(answers, -1);
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setBackground(Theme.BG);
+        setLayout(new BorderLayout(0, 16));
+        setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
 
-        JPanel top = new JPanel(new BorderLayout());
-        timerLabel.setFont(timerLabel.getFont().deriveFont(Font.BOLD, 18f));
-        top.add(numberLabel, BorderLayout.WEST);
-        top.add(timerLabel, BorderLayout.EAST);
+        // ---- top: question number, timer, progress ----
+        timerLabel.setFont(Theme.BOLD);
+        timerLabel.setOpaque(true);
+        timerLabel.setBorder(BorderFactory.createEmptyBorder(6, 14, 6, 14));
+
+        JPanel headerRow = new JPanel(new BorderLayout());
+        headerRow.setOpaque(false);
+        headerRow.add(numberLabel, BorderLayout.WEST);
+        headerRow.add(timerLabel, BorderLayout.EAST);
+
+        JPanel top = new JPanel(new BorderLayout(0, 10));
+        top.setOpaque(false);
+        top.add(headerRow, BorderLayout.NORTH);
+        top.add(progress, BorderLayout.CENTER);
         add(top, BorderLayout.NORTH);
 
-        // center
-        JPanel center = new JPanel(new GridLayout(5, 1, 5, 5));
+        // ---- center: question card ----
         questionText.setLineWrap(true);
         questionText.setWrapStyleWord(true);
         questionText.setEditable(false);
         questionText.setOpaque(false);
-        questionText.setFont(questionText.getFont().deriveFont(16f));
-        center.add(questionText);
-        for (int i = 0; i < 4; i++) {
-            optionBtns[i] = new JRadioButton();
-            group.add(optionBtns[i]);
-            center.add(optionBtns[i]);
-        }
-        add(center, BorderLayout.CENTER);
+        questionText.setFont(Theme.HEADING);
+        questionText.setForeground(Theme.TEXT);
+        questionText.setRows(3);
 
-        // bottom: navigation
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 5));
-        bottom.add(prevBtn);
-        bottom.add(nextBtn);
-        bottom.add(submitBtn);
+        JPanel options = new JPanel(new GridLayout(4, 1, 0, 10));
+        options.setOpaque(false);
+        for (int i = 0; i < 4; i++) {
+            JRadioButton rb = new JRadioButton();
+            rb.setFont(Theme.BODY);
+            rb.setForeground(Theme.TEXT);
+            rb.setOpaque(false);
+            rb.setFocusPainted(false);
+            group.add(rb);
+            optionBtns[i] = rb;
+
+            JPanel p = new JPanel(new BorderLayout());
+            p.add(rb, BorderLayout.CENTER);
+            p.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            optionPanels[i] = p;
+
+            rb.addActionListener(e -> refreshOptionStyles());
+            p.addMouseListener(new MouseAdapter() {
+                @Override public void mouseClicked(MouseEvent e) { rb.doClick(); }
+            });
+            options.add(p);
+        }
+
+        Theme.CardPanel card = new Theme.CardPanel(new BorderLayout(0, 16));
+        card.add(questionText, BorderLayout.NORTH);
+        card.add(options, BorderLayout.CENTER);
+        add(card, BorderLayout.CENTER);
+
+        // ---- bottom: navigation ----
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        right.setOpaque(false);
+        right.add(nextBtn);
+        right.add(submitBtn);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(prevBtn, BorderLayout.WEST);
+        bottom.add(right, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
 
         prevBtn.addActionListener(e -> move(-1));
         nextBtn.addActionListener(e -> move(1));
         submitBtn.addActionListener(e -> onSubmitClicked());
 
-
-        // countdown timer
+        // ---- countdown timer ----
         updateTimerLabel();
         timer = new Timer(1000, e -> {
             remainingSeconds--;
@@ -84,9 +125,24 @@ public class ExamPanel extends JPanel {
     private void updateTimerLabel() {
         int m = remainingSeconds / 60;
         int s = remainingSeconds % 60;
-        timerLabel.setText(String.format("Time Left: %02d:%02d", m, s));
-        // last 10 second mein red
-        timerLabel.setForeground(remainingSeconds <= 10 ? Color.RED : Color.BLACK);
+        timerLabel.setText(String.format("Time Left  %02d:%02d", m, s));
+        boolean low = remainingSeconds <= 30;
+        timerLabel.setBackground(low ? Theme.DANGER_BG : Theme.PRIMARY_TINT);
+        timerLabel.setForeground(low ? Theme.DANGER : Theme.PRIMARY);
+    }
+
+    // selected option ko highlight karo
+    private void refreshOptionStyles() {
+        for (int i = 0; i < 4; i++) {
+            boolean sel = optionBtns[i].isSelected();
+            JPanel p = optionPanels[i];
+            p.setOpaque(true);
+            p.setBackground(sel ? Theme.PRIMARY_TINT : Color.WHITE);
+            int pad = sel ? 11 : 12; // border 2px vs 1px, size same rakhne ke liye
+            p.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(sel ? Theme.PRIMARY : Theme.BORDER, sel ? 2 : 1),
+                    BorderFactory.createEmptyBorder(pad, pad, pad, pad)));
+        }
     }
 
     private void onSubmitClicked() {
@@ -102,7 +158,6 @@ public class ExamPanel extends JPanel {
         if (choice == JOptionPane.YES_OPTION) finishExam(false);
     }
 
-    // manual aur auto dono yahin aate hain
     private void finishExam(boolean autoSubmitted) {
         timer.stop();
         saveAnswer();
@@ -131,14 +186,36 @@ public class ExamPanel extends JPanel {
     private void showQuestion() {
         Question q = questions.get(current);
         numberLabel.setText("Question " + (current + 1) + " of " + questions.size());
+        progress.setFraction((current + 1) / (double) questions.size());
         questionText.setText(q.getText());
         group.clearSelection();
         for (int i = 0; i < 4; i++) {
             optionBtns[i].setText(q.getOptions()[i]);
         }
         if (answers[current] >= 0) optionBtns[answers[current]].setSelected(true);
+        refreshOptionStyles();
 
         prevBtn.setEnabled(current > 0);
         nextBtn.setEnabled(current < questions.size() - 1);
+    }
+
+    // patli progress bar (khud paint karte hain)
+    private static class ProgressStrip extends JComponent {
+        private double fraction = 0;
+
+        ProgressStrip() { setPreferredSize(new Dimension(10, 8)); }
+
+        void setFraction(double f) { fraction = f; repaint(); }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Theme.BORDER);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+            g2.setColor(Theme.PRIMARY);
+            g2.fillRoundRect(0, 0, (int) (getWidth() * fraction), getHeight(), 8, 8);
+            g2.dispose();
+        }
     }
 }

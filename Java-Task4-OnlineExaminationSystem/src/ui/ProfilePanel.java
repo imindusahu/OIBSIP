@@ -9,33 +9,40 @@ import java.awt.*;
 public class ProfilePanel extends JPanel {
     public ProfilePanel(MainFrame frame) {
         User user = frame.getCurrentUser();
+        setBackground(Theme.BG);
         setLayout(new GridBagLayout());
 
-        JLabel title = new JLabel("Welcome, " + user.getDisplayName());
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
+        JTextField nameField = new JTextField(user.getDisplayName(), 20);
+        JPasswordField passField = new JPasswordField(20);
+        Theme.styleField(nameField);
+        Theme.styleField(passField);
+        RoundedButton updateBtn = new RoundedButton("Update Profile", Theme.SECONDARY_BG, Theme.TEXT);
+        RoundedButton startBtn = new RoundedButton("Start Exam", Theme.PRIMARY, Color.WHITE);
 
-        JTextField nameField = new JTextField(user.getDisplayName(), 15);
-        JPasswordField passField = new JPasswordField(15);
-        JButton updateBtn = new JButton("Update Profile");
-        JButton startBtn = new JButton("Start Exam");
-
+        Theme.CardPanel card = new Theme.CardPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(8,8,8,8);
-        c.fill = GridBagConstraints.NONE;
-        c.weightx = 0;
-        c.weighty = 0;
+        c.gridx = 0;
+        c.gridwidth = 2;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        c.insets = new Insets(4, 0, 4, 0);
 
-        c.gridx = 0; c.gridy = 0; c.gridwidth = 2; add(title, c);
-        c.gridwidth = 1;
+        c.gridy = 0; card.add(Theme.label("Welcome, " + user.getDisplayName(), Theme.TITLE, Theme.PRIMARY), c);
+        c.gridy = 1; c.insets = new Insets(0, 0, 18, 0);
+        card.add(Theme.label("Update your profile before starting the exam", Theme.BODY, Theme.MUTED), c);
+        c.insets = new Insets(4, 0, 4, 0);
+        c.gridy = 2; card.add(Theme.label("Display Name", Theme.SMALL, Theme.MUTED), c);
+        c.gridy = 3; card.add(nameField, c);
+        c.gridy = 4; card.add(Theme.label("New Password (leave empty to keep old)", Theme.SMALL, Theme.MUTED), c);
+        c.gridy = 5; card.add(passField, c);
 
-        c.gridx = 0; c.gridy = 1; add(new JLabel("Display Name:"), c);
-        c.gridx = 1; add(nameField, c);
+        JPanel buttons = new JPanel(new GridLayout(1, 2, 12, 0));
+        buttons.setOpaque(false);
+        buttons.add(updateBtn);
+        buttons.add(startBtn);
+        c.gridy = 6; c.insets = new Insets(18, 0, 0, 0); card.add(buttons, c);
 
-        c.gridx = 0; c.gridy = 2; add(new JLabel("New Password:"), c);
-        c.gridx = 1; add(passField, c);
-
-        c.gridx = 1; c.gridy = 3; add(updateBtn, c);
-        c.gridx = 1; c.gridy = 4; add(startBtn, c);
+        add(card);
 
         updateBtn.addActionListener(e -> {
             String newName = nameField.getText().trim();
@@ -52,8 +59,8 @@ public class ProfilePanel extends JPanel {
                 }
                 user.setPassword(newPass);
             }
-            passField.setText("");
             AuthService.save();
+            passField.setText("");
             JOptionPane.showMessageDialog(this, "Profile updated!");
         });
 

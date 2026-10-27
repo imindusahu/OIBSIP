@@ -15,67 +15,117 @@ public class ResultPanel extends JPanel {
 
         int correct = r.getScore();
         int unanswered = 0;
-        for(int a : ans) if(a == -1) unanswered++;
+        for (int a : ans) if (a == -1) unanswered++;
         int incorrect = r.getTotal() - correct - unanswered;
-
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        // top: summary
-        JPanel top = new JPanel(new GridLayout(0, 1, 3, 3));
-        JLabel score = new JLabel("Score: " + correct + " out of " + r.getTotal());
-        score.setFont(score.getFont().deriveFont(Font.BOLD, 22f));
+        long percent = Math.round(100.0 * correct / r.getTotal());
         int m = r.getTimeTakenSeconds() / 60;
         int s = r.getTimeTakenSeconds() % 60;
-        top.add(score);
-        top.add(new JLabel(String.format("Time taken: %02d:%02d", m, s)));
-        top.add(new JLabel("Correct: " + correct + " Incorrect: " + incorrect + " Unanswered: " + unanswered));
+
+        setBackground(Theme.BG);
+        setLayout(new BorderLayout(0, 14));
+        setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
+
+        // ---- top: summary card ----
+        Theme.CardPanel summary = new Theme.CardPanel(new BorderLayout(20, 0));
+
+        JPanel left = new JPanel(new GridLayout(0, 1, 0, 2));
+        left.setOpaque(false);
+        left.add(Theme.label("Your Result", Theme.SMALL, Theme.MUTED));
+        left.add(Theme.label(correct + " / " + r.getTotal(),
+                new Font("SansSerif", Font.BOLD, 40), Theme.PRIMARY));
+        left.add(Theme.label(percent + "%   |   Time taken " + String.format("%02d:%02d", m, s),
+                Theme.BODY, Theme.MUTED));
+
+        JPanel stats = new JPanel(new GridLayout(1, 3, 10, 0));
+        stats.setOpaque(false);
+        stats.add(chip("Correct", correct, Theme.SUCCESS, Theme.SUCCESS_BG));
+        stats.add(chip("Incorrect", incorrect, Theme.DANGER, Theme.DANGER_BG));
+        stats.add(chip("Unanswered", unanswered, Theme.MUTED, Theme.SECONDARY_BG));
+
+        summary.add(left, BorderLayout.WEST);
+        summary.add(stats, BorderLayout.EAST);
+
+        JPanel top = new JPanel(new BorderLayout(0, 10));
+        top.setOpaque(false);
+        top.add(summary, BorderLayout.NORTH);
+        top.add(Theme.label("Detailed Review", Theme.HEADING, Theme.TEXT), BorderLayout.SOUTH);
         add(top, BorderLayout.NORTH);
 
-        // center: question-wise breakdown
+        // ---- center: question-wise review ----
         JPanel list = new JPanel();
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setOpaque(false);
 
-        for(int i = 0; i < qs.size(); i++) {
+        for (int i = 0; i < qs.size(); i++) {
             Question q = qs.get(i);
             boolean isCorrect = ans[i] == q.getCorrectIndex();
+            Color accent = isCorrect ? Theme.SUCCESS : Theme.DANGER;
+            Color tint = isCorrect ? Theme.SUCCESS_BG : Theme.DANGER_BG;
 
-            JTextArea area = new JTextArea();
+            StringBuilder sb = new StringBuilder();
+            sb.append("Q").append(i + 1).append(". ").append(q.getText()).append("\n");
+            sb.append("Your answer: ")
+                    .append(ans[i] == -1 ? "Not answered" : q.getOptions()[ans[i]]).append("\n");
+            if (isCorrect) {
+                sb.append("Result: Correct");
+            } else {
+                sb.append("Correct answer: ").append(q.getOptions()[q.getCorrectIndex()]).append("\n");
+                sb.append("Explanation: ").append(q.getExplanation());
+            }
+
+            JTextArea area = new JTextArea(sb.toString());
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             area.setEditable(false);
             area.setOpaque(false);
+            area.setFont(Theme.BODY);
+            area.setForeground(Theme.TEXT);
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("Q").append(i + 1).append(". ").append(q.getText()).append("\n");
-            sb.append("Your answer: ").append(ans[i] == -1 ? "Not answered" : q.getOptions()[ans[i]]).append("\n");
+            JPanel item = new JPanel(new BorderLayout());
+            item.setBackground(tint);
+            item.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 6, 0, 0, accent),
+                    BorderFactory.createEmptyBorder(10, 14, 10, 14)));
+            item.add(area, BorderLayout.CENTER);
 
-            if(isCorrect) {
-                sb.append("Result: Correct");
-            } else {
-                sb.append("Correct answer: ").append(q.getOptions()[q.getCorrectIndex()]).append("\n");
-                sb.append("Explanation: ").append(q.getExplanation()); // AI feature
-            }
-            area.setText(sb.toString());
-            area.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(isCorrect ? new Color(0,140, 0) : Color.RED, 2),
-                    BorderFactory.createEmptyBorder(6, 6, 6, 6)));
-
-            list.add(area);
-            list.add(Box.createVerticalStrut(8));
+            list.add(item);
+            list.add(Box.createVerticalStrut(10));
         }
-        add(new JScrollPane(list), BorderLayout.CENTER);
 
-        // bottom: logout
-        JButton logoutBtn = new JButton("Logout");
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(list, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(wrapper);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Theme.BG);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        add(scroll, BorderLayout.CENTER);
+
+        // ---- bottom: logout ----
+        RoundedButton logoutBtn = new RoundedButton("Logout", Theme.PRIMARY, Color.WHITE);
         logoutBtn.addActionListener(e -> {
             frame.setCurrentUser(null);
             frame.setLastResult(null);
-            frame.addScreen("LOGIN", new LoginPanel(frame)); // fresh login screen
+            frame.addScreen("LOGIN", new LoginPanel(frame));
             frame.showScreen("LOGIN");
         });
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        bottom.setOpaque(false);
         bottom.add(logoutBtn);
         add(bottom, BorderLayout.SOUTH);
+    }
+
+    private JPanel chip(String title, int value, Color fg, Color bg) {
+        JPanel p = new JPanel(new GridLayout(0, 1, 0, 2));
+        p.setBackground(bg);
+        p.setBorder(BorderFactory.createEmptyBorder(10, 18, 10, 18));
+        JLabel v = Theme.label(String.valueOf(value), new Font("SansSerif", Font.BOLD, 24), fg);
+        JLabel t = Theme.label(title, Theme.SMALL, fg);
+        v.setHorizontalAlignment(SwingConstants.CENTER);
+        t.setHorizontalAlignment(SwingConstants.CENTER);
+        p.add(v);
+        p.add(t);
+        return p;
     }
 }

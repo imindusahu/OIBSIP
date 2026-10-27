@@ -16,7 +16,7 @@ public class MainFrame extends JFrame {
 
     public  MainFrame() {
         setTitle("Online Examination System");
-        setSize(700, 500);
+        setSize(820, 660);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
