@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ExamPanel extends JPanel {
-    private static final int TOTAL_SECONDS = 5 * 60;
+    private static final int TOTAL_SECONDS = 10 * 60;
     private static final int ADAPTIVE_COUNT = 10;// final submission mein 30 * 60
 
     private final MainFrame frame;
