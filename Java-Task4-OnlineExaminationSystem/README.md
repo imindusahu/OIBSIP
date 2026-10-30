@@ -61,3 +61,5 @@ src/
   Real systems hash passwords (for example, BCrypt).
 - `users.txt` is created on first run and is not committed to Git.
 
+## Demo Video
+LinkedIn post: [View here](https://lnkd.in/p/dQPh-A5U)
