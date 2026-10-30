@@ -182,7 +182,7 @@ public class ExamPanel extends JPanel {
     private void onSubmitClicked() {
         saveAnswer();
         int unanswered = 0;
-        for (int i = 0; i < questions.size(); i++) if (answers[i] == -1) unanswered++;
+        for (int i = 0; i < total; i++) if (answers[i] == -1) unanswered++;
 
         String msg = unanswered > 0
                 ? "You have " + unanswered + " unanswered question(s).\nSubmit anyway?"
@@ -196,6 +196,16 @@ public class ExamPanel extends JPanel {
         timer.stop();
         saveAnswer();
         int timeTaken = TOTAL_SECONDS - remainingSeconds;
+        frame.setLastResult(new ExamResult(questions, Arrays.copyOf(answers, questions.size()), timeTaken));
+
+        if(adaptive) {
+            while(questions.size() < total) {
+                Question extra = engine.nextQuestion();
+                if(extra == null) break;
+                questions.add(extra);
+            }
+        }
+
         frame.setLastResult(new ExamResult(questions, Arrays.copyOf(answers, questions.size()), timeTaken));
 
         if (autoSubmitted) {
